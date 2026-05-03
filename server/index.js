@@ -24,56 +24,42 @@ mongoose
 
 async function getEstimatedDistance(source, destination) {
   try {
-    const apiKey = process.env.ORS_API_KEY;
-
-    // Step 1: Convert city names to coordinates
     const geocode = async (city) => {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ", India")}&format=json&limit=1`,
-      {
-        headers: {
-          "User-Agent": "SmartRouteAI/1.0"
-        }
-      }
-    );
-    const data = await res.json();
-    if (!data[0]) return null;
-    // Nominatim returns [lat, lon] — ORS needs [lon, lat]
-    return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
-  };
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ", India")}&format=json&limit=1`,
+        { headers: { "User-Agent": "SmartRouteAI/1.0" } }
+      );
+      const data = await res.json();
+      if (!data[0]) return null;
+      return {
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon)
+      };
+    };
 
-    const sourceCoords = await geocode(source);
-    const destCoords = await geocode(destination);
+    const source_coords = await geocode(source);
+    const dest_coords = await geocode(destination);
 
-    if (!sourceCoords || !destCoords) {
-      return "Distance not available";
-    }
+    if (!source_coords || !dest_coords) return "Distance not available";
 
-    // Step 2: Get driving distance between coordinates
-    const res = await fetch(
-      "https://api.openrouteservice.org/v2/directions/driving-car",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: apiKey,
-        },
-        body: JSON.stringify({
-          coordinates: [sourceCoords, destCoords],
-        }),
-      }
-    );
+    // Haversine formula — calculates straight line distance between two coords
+    const R = 6371;
+    const dLat = (dest_coords.lat - source_coords.lat) * Math.PI / 180;
+    const dLon = (dest_coords.lon - source_coords.lon) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(source_coords.lat * Math.PI / 180) *
+      Math.cos(dest_coords.lat * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const straightLine = R * c;
 
-    const data = await res.json();
-    const metres = data.routes?.[0]?.summary?.distance;
-
-    if (!metres) return "Distance not available";
-
-    const km = Math.round(metres / 1000);
-    return `~${km} km`;
+    // Road distance is typically 1.3x the straight line distance in India
+    const roadDistance = Math.round(straightLine * 1.3);
+    return `~${roadDistance} km`;
 
   } catch (err) {
-    console.error("Distance API error:", err.message);
+    console.error("Distance error:", err.message);
     return "Distance not available";
   }
 }
