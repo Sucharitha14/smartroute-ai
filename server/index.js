@@ -190,6 +190,19 @@ app.get("/test-api", async (req, res) => {
   }
 });
 
+app.get("/test-geocode", async (req, res) => {
+  try {
+    const response = await fetch(
+      "https://nominatim.openstreetmap.org/search?q=Delhi%2C+India&format=json&limit=1",
+      { headers: { "User-Agent": "SmartRouteAI/1.0" } }
+    );
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
