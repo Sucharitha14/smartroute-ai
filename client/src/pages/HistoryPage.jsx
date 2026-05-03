@@ -7,14 +7,14 @@ export default function HistoryPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/trips")
+    fetch("https://smartroute-ai-7rh4.onrender.com/api/trips")
       .then((res) => res.json())
       .then((data) => setTrips(data));
   }, []);
 
   async function handleDelete(id) {
     setDeletingId(id);
-    await fetch(`http://localhost:5000/api/trips/${id}`, { method: "DELETE" });
+    await fetch(`https://smartroute-ai-7rh4.onrender.com/api/trips/${id}`, { method: "DELETE" });
     setTrips((prev) => prev.filter((t) => t._id !== id));
     setDeletingId(null);
   }
